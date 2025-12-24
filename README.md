@@ -72,30 +72,7 @@ graph LR
     style E fill:#9334E6,stroke:#333,stroke-width:2px,color:#fff
 ```
 
-**ROS Topics Pipeline**:
-```mermaid
-graph TD
-    SR[Speech Recognition Node] -->|item_finder_input| SP[Speech Processing Node]
-    SP -->|item_finder_object| OD[Object Detection Node]
-    SP -->|item_finder_response| TTS[TTS Node]
-    OD -->|detected_object_bbox| DE[Depth Estimation Node]
-    OD -->|detected_object_image/compressed| DE
-    DE -->|item_finder_response| TTS
-    DE -->|depth_status| SP
-    SP -->|item_finder_sr_termination| SR
-    
-    style SR fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style SP fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style OD fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style DE fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    style TTS fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-```
-
-**Key Design Patterns**:
-- **Pub/Sub Messaging**: 7 ROS topics for asynchronous communication
-- **State Synchronization**: Coordinated workflow management across nodes
-- **Error Recovery**: 20-second timeouts with user re-prompting
-- **API Integration**: RESTful calls to cloud-based AI services
+**Key Design Patterns**: Pub/Sub messaging (7 ROS topics) • State synchronization • 20s timeout with error recovery • RESTful API integration
 
 ---
 
@@ -149,89 +126,38 @@ sequenceDiagram
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Ubuntu 18.04 + ROS Noetic
-- Python 3.10+ (Anaconda)
-- USB Camera + Microphone
+Ubuntu 18.04 • ROS Noetic • Python 3.10+ • USB Camera + Microphone
 
-### Installation
+### Installation & Run
 
 ```bash
-# Clone repository
+# Clone & setup
 cd ~/catkin_ws/src/
 git clone https://github.com/NeoSockCheng/juno-vision-guide.git
-cd juno-vision-guide
+conda env create -f environment.yml && conda activate juno_vision_guide
 
-# Setup environment
-conda env create -f environment.yml
-conda activate juno_vision_guide
+# Add API keys to scripts/.env: GEMINI_API_KEY, DEPTH_PRO_API_KEY
 
-# Configure API keys
-# Add your keys to scripts/.env:
-# GEMINI_API_KEY=your-key-here
-# DEPTH_PRO_API_KEY=your-key-here
+# Build & launch
+cd ~/catkin_ws && catkin_make && source devel/setup.bash
+roscore  # Terminal 1
 
-# Build workspace
-cd ~/catkin_ws
-catkin_make
-source devel/setup.bash
-```
-
-### Run System
-
-```bash
-# Terminal 1: Start ROS core
-roscore
-
-# Terminal 2: Launch all nodes
-roslaunch juno_vision_guide juno_vision_guide.launch
-```
-
-**Usage**: Wait for *"Tell me what you want to find..."* → Speak command → System responds with distance
-
----
-
-## 📊 Technical Highlights
-
-### 1. **Distributed ROS Nodes**
-Five independent Python nodes communicating via topics:
-- `google_sr.py` - Speech-to-text with ambient noise adjustment
-- `speech_input.py` - Gemini AI object extraction + validation
-- `object_detection.py` - YOLOv8 inference with bounding boxes
-- `object_depth_estimation.py` - API-based depth calculation
-- `google_tts.py` - Text-to-speech feedback
-
-### 2. **AI-Powered NLP**
-```python
-# Gemini prompt engineering for object extraction
-prompt = f"""From: '{user_input}', extract the main object.
-Valid objects: {yolo_classes}. Handle synonyms (iphone→phone).
-Reply with object name or 'No object extracted'."""
-```
-
-### 3. **Computer Vision Pipeline**
-- **YOLO Inference**: 70% confidence threshold
-- **Bounding Box Export**: JSON with coordinates
-- **Image Compression**: JPEG encoding for API transmission
-- **Timeout Handling**: 20-second detection window
-
-### 4. **State Management**
-Global flags synchronize asynchronous workflows:
-```python
-depth_busy = False  # Blocks speech input during processing
-object_captured = False  # Prevents duplicate detections
+roslaunch juno_vision_guide juno_vision_guide.launch  # Terminal 2
 ```
 
 ---
 
-## 🔧 Configuration
+## 📊 Technical Implementation
 
-| Parameter | Default | Location |
-|-----------|---------|----------|
-| Camera Device | `1` | `google_sr.py` |
-| Microphone Index | `1` | `google_sr.py` |
-| Confidence Threshold | `0.7` | `object_detection.py` |
-| Detection Timeout | `20s` | `object_detection.py` |
-| Depth API Endpoint | Hugging Face | `object_depth_estimation.py` |
+**Distributed Architecture**: 5 Python ROS nodes (`google_sr.py`, `speech_input.py`, `object_detection.py`, `object_depth_estimation.py`, `google_tts.py`)
+
+**AI/NLP**: Gemini 2.5 Flash with prompt engineering for object extraction + synonym mapping (iPhone→phone)
+
+**Computer Vision**: YOLOv8 @ 70% confidence • JSON bounding boxes • JPEG compression • 20s timeout
+
+**State Management**: Global flags (`depth_busy`, `object_captured`) for asynchronous workflow synchronization
+
+**Configuration**: Camera/Mic device index: 1 • Detection timeout: 20s • Depth API: Hugging Face
 
 ---
 
